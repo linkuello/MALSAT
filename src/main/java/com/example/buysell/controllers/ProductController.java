@@ -5,9 +5,7 @@ import org.springframework.ui.Model;
 import com.example.buysell.services.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.*;
 
 @Controller
 @RequiredArgsConstructor
@@ -15,8 +13,8 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping("/")
-    public String products(Model model) {
-        model.addAttribute("products", productService.listProducts());
+    public String products(@RequestParam(name = "title", required = false) String title, Model model) {
+        model.addAttribute("products", productService.listProducts(title));
         return "products";
     }
     @GetMapping("/product/{id}")
@@ -26,7 +24,7 @@ public class ProductController {
     }
 
     @PostMapping("/product/create")
-    public String createProduct(Product product) {
+    public String createProduct(@ModelAttribute Product product) {
         productService.saveProduct(product);
         return "redirect:/";
     }
