@@ -8,7 +8,9 @@
 <body>
 <h1>MALSAT</h1><hr>
 <h4>Подробная информация о скоте</h4>
-
+<#list images as img>
+    <img src="/images/${img.id}" height="60px"/><br><br>
+</#list>
 <b>Название товара: </b> ${product.title}<br>
 <b>Описание: </b> ${product.description}<br>
 <b>Цена: </b> ${product.price}<br>
