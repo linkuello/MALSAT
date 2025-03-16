@@ -31,6 +31,9 @@
     Цена обьявления: <input type="number" name="price" required/><br><br>
     Город обьявления: <input type="text" name="city" required/><br><br>
     Имя обьявления: <input type="text" name="author" required/><br><br>
+    Первая фотография: <input type="file" name="file1" required/><br><br>
+    Вторая фотография: <input type="file" name="file2" required/><br><br>
+    Третья фотография: <input type="file" name="file3" required/><br><br>
     <input type="submit" value="Добавить товар"/>
 </form>
 </body>
