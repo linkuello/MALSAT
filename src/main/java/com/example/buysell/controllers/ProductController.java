@@ -1,7 +1,10 @@
 package com.example.buysell.controllers;
 
 import com.example.buysell.models.Product;
+import com.example.buysell.models.User;
 import com.example.buysell.services.ProductService;
+import com.example.buysell.services.UserService; // 🔹 Импортируем UserService
+import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +18,7 @@ import java.util.List;
 @RequestMapping("/api/products")
 public class ProductController {
     private final ProductService productService;
+    private final UserService userService; // 🔹 Добавляем UserService
 
     @GetMapping
     public ResponseEntity<List<Product>> getProducts(@RequestParam(name = "title", required = false) String title) {
@@ -29,9 +33,11 @@ public class ProductController {
     }
 
     @PostMapping(consumes = "multipart/form-data")
-    public ResponseEntity<?> createProduct(@RequestParam("title") String title,
+    public ResponseEntity<?> createProduct( @RequestParam("title") String title,
                                            @RequestParam("description") String description,
                                            @RequestParam("price") Double price,
+                                           @RequestParam(value = "city", required = false) String city,
+                                            @Parameter(hidden = true) @RequestParam(value = "authorId", required = false) Long authorId,
                                            @RequestParam(value = "file1", required = false) MultipartFile file1,
                                            @RequestParam(value = "file2", required = false) MultipartFile file2,
                                            @RequestParam(value = "file3", required = false) MultipartFile file3) {
@@ -40,11 +46,24 @@ public class ProductController {
             product.setTitle(title);
             product.setDescription(description);
             product.setPrice(price);
+            product.setCity(city);
+            product.setDateOfCreated(java.time.LocalDateTime.now());
+
+            if (authorId != null) {
+                User author = userService.getUserById(authorId); // 🔹 Теперь можно использовать userService
+                if (author != null) {
+                    product.setAuthor(author);
+                } else {
+                    return ResponseEntity.badRequest().body("Автор с ID " + authorId + " не найден");
+                }
+            }
 
             productService.saveProduct(product, file1, file2, file3);
-            return ResponseEntity.status(HttpStatus.CREATED).body(product);
+
+            Product savedProduct = productService.getProductById(product.getId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(savedProduct);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка при сохранении продукта");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Ошибка при сохранении продукта: " + e.getMessage());
         }
     }
 

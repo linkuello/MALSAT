@@ -1,5 +1,6 @@
 package com.example.buysell.models;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -16,42 +17,35 @@ import java.util.List;
 @NoArgsConstructor
 public class Product {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-
-    @Column(name = "id")
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Лучше для MySQL/PostgreSQL
     private Long id;
 
-    @Column(name = "title")
+    @Column(name = "title", nullable = false)
     private String title;
 
     @Column(name = "description", columnDefinition = "text")
     private String description;
 
-    @Column(name = "price")
+    @Column(name = "price", nullable = false)
     private Double price;
 
     @Column(name = "city")
     private String city;
 
-    @Column(name = "author")
-    private String author;
+    @ManyToOne(fetch = FetchType.LAZY) // Связь с User, если есть
+    @JoinColumn(name = "author_id")
+    private User author;
 
-    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY,
-    mappedBy = "product")
-
+    @OneToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY, mappedBy = "product", orphanRemoval = true)
+    @JsonManagedReference // Избегает проблем с JSON
     private List<Image> images = new ArrayList<>();
-    private Long previewImageId;
-    private LocalDateTime dateOfCreated;
 
-    @PrePersist
-    private void init() {
-        dateOfCreated = LocalDateTime.now();
-    }
+    private Long previewImageId;
+
+    private LocalDateTime dateOfCreated = LocalDateTime.now(); // Инициализация сразу
 
     public void addImageToProduct(Image image) {
         image.setProduct(this);
         images.add(image);
     }
-
-
 }

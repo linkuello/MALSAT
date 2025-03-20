@@ -18,42 +18,49 @@ public class ProductService {
     private final ProductRepository productRepository;
 
     public List<Product> listProducts(String title) {
-        if (title != null) return productRepository.findByTitle(title);
-        return productRepository.findAll();
+        return (title != null) ? productRepository.findByTitle(title) : productRepository.findAll();
     }
 
-    public void saveProduct(Product product, MultipartFile file1, MultipartFile file2, MultipartFile file3) throws IOException {
-        if (file1.getSize() != 0) {
-            Image image1 = toImageEntity(file1);
-            image1.setPreviewImage(true);
-            product.addImageToProduct(image1);
-        }
-        if (file2.getSize() != 0) {
-            Image image2 = toImageEntity(file2);
-            product.addImageToProduct(image2);
-        }
-        if (file3.getSize() != 0) {
-            Image image3 = toImageEntity(file3);
-            product.addImageToProduct(image3);
+    public void saveProduct(Product product, MultipartFile... files) throws IOException {
+        if (product == null) {
+            log.warn("Attempted to save a null product");
+            return;
         }
 
-        log.info("Saving new Product. Title: {}; Author: {}", product.getTitle(), product.getAuthor());
-        Product productFromDb = productRepository.save(product);
+        processImages(product, files);
 
-        if (!productFromDb.getImages().isEmpty()) {
-            productFromDb.setPreviewImageId(productFromDb.getImages().get(0).getId());
-            productRepository.save(productFromDb);
+        log.info("Saving new Product. Title: {}; Author: {}; Price: {}; Description: {}",
+                product.getTitle(), product.getAuthor(), product.getPrice(), product.getDescription());
+
+        productRepository.save(product);
+    }
+
+    private void processImages(Product product, MultipartFile... files) throws IOException {
+        boolean isFirstImage = true;
+        for (MultipartFile file : files) {
+            if (file != null && !file.isEmpty()) {
+                Image image = toImageEntity(file);
+                if (isFirstImage) {
+                    image.setPreviewImage(true);
+                    isFirstImage = false;
+                }
+                product.addImageToProduct(image);
+            }
+        }
+
+        if (!product.getImages().isEmpty()) {
+            product.setPreviewImageId(product.getImages().get(0).getId());
         }
     }
 
     private Image toImageEntity(MultipartFile file) throws IOException {
-        Image image = new Image();
-        image.setName(file.getName());
-        image.setOriginalFileName(file.getOriginalFilename());
-        image.setContentType(file.getContentType());
-        image.setSize(file.getSize());
-        image.setBytes(file.getBytes());
-        return image;
+        return Image.builder()
+                .name(file.getName())
+                .originalFileName(file.getOriginalFilename())
+                .contentType(file.getContentType())
+                .size(file.getSize())
+                .bytes(file.getBytes())
+                .build();
     }
 
     public void deleteProduct(Long id) {
