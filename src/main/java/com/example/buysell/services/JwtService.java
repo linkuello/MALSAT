@@ -15,9 +15,11 @@ public class JwtService {
     private static final String SECRET_KEY = "your-secret-key-your-secret-key-your-secret-key"; // 32+ символа
 
     private Key getSignKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+        // Если SECRET_KEY уже в Base64Url, используем его как есть
+        byte[] keyBytes = Decoders.BASE64URL.decode(SECRET_KEY);
         return Keys.hmacShaKeyFor(keyBytes);
     }
+
 
 
     public String generateToken(UserDetails userDetails) {
