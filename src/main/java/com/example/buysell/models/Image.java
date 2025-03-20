@@ -3,6 +3,7 @@ package com.example.buysell.models;
 import jakarta.persistence.*;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import jakarta.persistence.Id;
@@ -13,6 +14,7 @@ import jakarta.persistence.Id;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class Image {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
