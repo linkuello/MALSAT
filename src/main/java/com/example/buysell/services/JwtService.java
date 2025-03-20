@@ -1,33 +1,51 @@
 package com.example.buysell.services;
 
+import com.example.buysell.models.User;
+import com.example.buysell.repositories.UserRepository;
+import com.example.buysell.security.CustomUserDetails;
 import io.jsonwebtoken.*;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.Optional;
 import java.util.function.Function;
 
 @Service
 public class JwtService {
-    private static final String SECRET_KEY = "your-secret-key-your-secret-key-your-secret-key"; // 32+ символа
+    private final Key signingKey;
+    private final long accessTokenExpiration;
+    private final long refreshTokenExpiration;
+    private final UserRepository userRepository;
 
-    private Key getSignKey() {
-        // Если SECRET_KEY уже в Base64Url, используем его как есть
-        byte[] keyBytes = Decoders.BASE64URL.decode(SECRET_KEY);
-        return Keys.hmacShaKeyFor(keyBytes);
+    public JwtService(@Value("${jwt.secret}") String secretKey,
+                      @Value("${jwt.access-token.expiration}") long accessTokenExpiration,
+                      @Value("${jwt.refresh-token.expiration}") long refreshTokenExpiration,
+                      UserRepository userRepository) {
+        this.signingKey = Keys.hmacShaKeyFor(secretKey.getBytes());
+        this.accessTokenExpiration = accessTokenExpiration;
+        this.refreshTokenExpiration = refreshTokenExpiration;
+        this.userRepository = userRepository;
     }
 
-
-
-    public String generateToken(UserDetails userDetails) {
+    public String generateAccessToken(UserDetails userDetails) {
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60)) // 1 час
-                .signWith(getSignKey(), SignatureAlgorithm.HS256)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + accessTokenExpiration))
+                .signWith(signingKey, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String generateRefreshToken(UserDetails userDetails) {
+        return Jwts.builder()
+                .setSubject(userDetails.getUsername())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + refreshTokenExpiration))
+                .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -37,7 +55,7 @@ public class JwtService {
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         Claims claims = Jwts.parserBuilder()
-                .setSigningKey(getSignKey())
+                .setSigningKey(signingKey)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
@@ -49,7 +67,23 @@ public class JwtService {
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
-    private boolean isTokenExpired(String token) {
+    public boolean isTokenExpired(String token) {
         return extractClaim(token, Claims::getExpiration).before(new Date());
+    }
+
+    public String refreshToken(String refreshToken) {
+        if (isTokenExpired(refreshToken)) {
+            throw new JwtException("Refresh Token истек");
+        }
+        String username = extractUsername(refreshToken);
+        Optional<User> userOptional = userRepository.findByEmail(username);
+
+        if (userOptional.isEmpty()) {
+            throw new JwtException("Пользователь не найден");
+        }
+        User user = userOptional.get();
+        UserDetails userDetails = new CustomUserDetails(user);
+
+        return generateAccessToken(userDetails);
     }
 }

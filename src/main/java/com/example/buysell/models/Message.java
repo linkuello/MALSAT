@@ -16,7 +16,15 @@ public class Message {
     private String sender;
     private String recipient;
     private String content;
-    private LocalDateTime timestamp = LocalDateTime.now();
 
-    // Геттеры и сеттеры
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime timestamp;
+
+    // Устанавливаем временную метку перед сохранением
+    @PrePersist
+    public void prePersist() {
+        this.timestamp = LocalDateTime.now();  // Устанавливаем текущее время перед сохранением
+    }
+
+    // Геттеры и сеттеры будут автоматически сгенерированы благодаря Lombok
 }
